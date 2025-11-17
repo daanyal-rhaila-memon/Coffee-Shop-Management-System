@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MochaMagic | Sign Up</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="index.html">
+        <span style="color:#d1a679;">Mocha</span>Magic
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div id="nav" class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="menu.html">Menu</a></li>
+          <li class="nav-item"><a class="nav-link" href="cart.html">Cart</a></li>
+          <li class="nav-item"><a class="nav-link" href="login.html">Login</a></li>
+          <li class="nav-item"><a class="nav-link active" href="signup.html">Sign Up</a></li>
+          <li class="nav-item"><a class="nav-link" href="rewards.html">Rewards</a></li>
+          <li class="nav-item"><a class="nav-link" href="reviews.html">Reviews</a></li>
+          <li class="nav-item"><a class="nav-link" href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Header -->
+  <header class="py-5 text-center">
+    <h1 class="fw-bold">Create an Account</h1>
+    <p>Join MochaMagic and start earning rewards ☕</p>
+  </header>
+
+  <!-- Sign Up Form -->
+  <section class="d-flex justify-content-center align-items-center" style="min-height:70vh;">
+    <form class="login-form" action="#" method="POST" style="max-width: 500px;">
+      <div class="row mb-3">
+        <div class="col-md-6 mb-3 mb-md-0">
+          <input type="text" id="firstname" name="firstname" placeholder="First Name" class="form-control" required>
+        </div>
+        <div class="col-md-6">
+          <input type="text" id="lastname" name="lastname" placeholder="Last Name" class="form-control" required>
+        </div>
+      </div>
+      
+      <input type="email" id="email" name="email" placeholder="Email" class="form-control mb-3" required>
+      
+      <input type="tel" id="phone" name="phone" placeholder="Phone Number" class="form-control mb-3" required>
+      
+      <input type="password" id="password" name="password" placeholder="Password (min 6 characters)" class="form-control mb-3" minlength="6" required>
+      
+      <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" class="form-control mb-3" minlength="6" required>
+      
+      <textarea id="address" name="address" placeholder="Delivery Address (Optional)" class="form-control mb-3" rows="2"></textarea>
+      
+      <button type="submit" class="btn btn-coffee w-100">Sign Up</button>
+      <p class="mt-3 text-center">
+        Already have an account? <a href="login.html" style="color:#d1a679; font-weight:500;">Login</a>
+      </p>
+    </form>
+  </section>
+
+  <!-- Footer -->
+  <footer class="text-center py-3">
+    <p class="mb-0">&copy; 2025 MochaMagic. All rights reserved.</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="auth.js"></script>
+  <script>
+    // Override the signup form initialization for the new fields
+    document.addEventListener('DOMContentLoaded', function() {
+      const signupForm = document.querySelector('.login-form[action="#"]');
+      
+      if (signupForm && window.location.pathname.includes('signup.html')) {
+        // Remove the default handler and add new one
+        signupForm.removeEventListener('submit', initSignupForm);
+        
+        signupForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          const firstname = document.getElementById('firstname').value.trim();
+          const lastname = document.getElementById('lastname').value.trim();
+          const email = document.getElementById('email').value.trim();
+          const phone = document.getElementById('phone').value.trim();
+          const password = document.getElementById('password').value;
+          const confirmPassword = document.getElementById('confirmPassword').value;
+          const address = document.getElementById('address').value.trim();
+          
+          // Validation
+          if (!firstname || !lastname || !email || !phone || !password || !confirmPassword) {
+            showMessage('❌ Please fill in all required fields', 'error');
+            return;
+          }
+          
+          if (!isValidEmail(email)) {
+            showMessage('❌ Please enter a valid email address', 'error');
+            return;
+          }
+          
+          if (password.length < 6) {
+            showMessage('❌ Password must be at least 6 characters long', 'error');
+            return;
+          }
+          
+          if (password !== confirmPassword) {
+            showMessage('❌ Passwords do not match!', 'error');
+            document.getElementById('password').style.borderColor = '#dc3545';
+            document.getElementById('confirmPassword').style.borderColor = '#dc3545';
+            return;
+          }
+          
+          // Check if user already exists
+          const users = getUsers();
+          if (users.find(u => u.email === email)) {
+            showMessage('❌ An account with this email already exists', 'error');
+            return;
+          }
+          
+          const fullname = firstname + ' ' + lastname;
+          
+          // Create new user
+          const newUser = {
+            id: Date.now(),
+            fullname: fullname,
+            firstName: firstname,
+            lastName: lastname,
+            email: email,
+            phone: phone,
+            address: address,
+            city: 'Karachi',
+            postalCode: '',
+            password: password,
+            rewards: 0,
+            createdAt: new Date().toISOString()
+          };
+          
+          users.push(newUser);
+          saveUsers(users);
+          
+          showMessage('✅ Account created successfully! Redirecting to login...', 'success');
+          
+          signupForm.reset();
+          
+          setTimeout(() => {
+            window.location.href = 'login.html';
+          }, 2000);
+        });
+        
+        // Add password match checker
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirmPassword');
+        
+        if (password && confirmPassword) {
+          const indicator = document.createElement('div');
+          indicator.id = 'password-match-indicator';
+          indicator.style.cssText = `
+            margin-top: -10px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+          `;
+          confirmPassword.parentElement.appendChild(indicator);
+          
+          function checkPasswordMatch() {
+            const pass = password.value;
+            const confirmPass = confirmPassword.value;
+            
+            if (confirmPass === '') {
+              indicator.textContent = '';
+              confirmPassword.style.borderColor = '#cbb09c';
+              return;
+            }
+            
+            if (pass === confirmPass) {
+              indicator.textContent = '✓ Passwords match';
+              indicator.style.color = '#28a745';
+              confirmPassword.style.borderColor = '#28a745';
+            } else {
+              indicator.textContent = '✗ Passwords do not match';
+              indicator.style.color = '#dc3545';
+              confirmPassword.style.borderColor = '#dc3545';
+            }
+          }
+          
+          password.addEventListener('input', checkPasswordMatch);
+          confirmPassword.addEventListener('input', checkPasswordMatch);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
