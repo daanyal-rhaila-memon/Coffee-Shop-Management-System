@@ -114,6 +114,7 @@ export const ordersAPI = {
     postal_code?: string;
     notes?: string;
   }) => {
+    console.log('create order', data);
     const response = await api.post('/orders', data);
     return response.data;
   },

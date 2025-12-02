@@ -161,7 +161,6 @@ export default function CheckoutPage() {
       }
       
       setError(errorMessage);
-      alert(`Error: ${errorMessage}\n\nPlease check:\n- You are logged in\n- Cart items are valid\n- Backend is running on http://localhost:5000`);
     } finally {
       setLoading(false);
     }

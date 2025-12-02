@@ -7,7 +7,12 @@ from datetime import datetime
 
 orders_bp = Blueprint('orders', __name__)
 
-@orders_bp.route('/', methods=['POST'])
+@orders_bp.route('/', methods=['OPTIONS'], strict_slashes=False)
+def handle_options():
+    """Handle CORS preflight requests"""
+    return '', 200
+
+@orders_bp.route('/', methods=['POST'], strict_slashes=False)
 @jwt_required()
 def create_order():
     """
@@ -17,9 +22,9 @@ def create_order():
     - Records payment
     - Awards reward points
     """
+    print("create_order", request.get_json())
     try:
-        print("create_order")
-        customer_id = get_jwt_identity()
+        customer_id = int(get_jwt_identity())  # Convert string to int
         data = request.get_json()
         
         # Validate required fields
@@ -127,12 +132,12 @@ def create_order():
         return jsonify({'error': str(e)}), 500
 
 
-@orders_bp.route('/', methods=['GET'])
+@orders_bp.route('/', methods=['GET'], strict_slashes=False)
 @jwt_required()
 def get_customer_orders():
     """Get all orders for the logged-in customer"""
     try:
-        customer_id = get_jwt_identity()
+        customer_id = int(get_jwt_identity())  # Convert string to int
         
         orders = Orders.query.filter_by(customer_id=customer_id)\
                              .order_by(Orders.order_date.desc())\
@@ -152,7 +157,7 @@ def get_customer_orders():
 def get_order_details(order_id):
     """Get details of a specific order"""
     try:
-        customer_id = get_jwt_identity()
+        customer_id = int(get_jwt_identity())  # Convert string to int
         
         order = Orders.query.filter_by(
             order_id=order_id,
@@ -173,7 +178,7 @@ def get_order_details(order_id):
 def cancel_order(order_id):
     """Cancel an order (only if status is Pending)"""
     try:
-        customer_id = get_jwt_identity()
+        customer_id = int(get_jwt_identity())  # Convert string to int
         
         order = Orders.query.filter_by(
             order_id=order_id,

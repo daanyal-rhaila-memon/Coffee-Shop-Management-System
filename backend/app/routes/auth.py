@@ -74,8 +74,8 @@ def login():
         ):
             return jsonify({'error': 'Invalid email or password'}), 401
         
-        # Create JWT token
-        access_token = create_access_token(identity=customer.customer_id)
+        # Create JWT token - convert customer_id to string for JWT compatibility
+        access_token = create_access_token(identity=str(customer.customer_id))
         
         return jsonify({
             'message': 'Login successful',
@@ -92,7 +92,7 @@ def login():
 def get_profile():
     """Get current customer profile"""
     try:
-        customer_id = get_jwt_identity()
+        customer_id = int(get_jwt_identity())  # Convert string to int
         customer = Customer.query.get(customer_id)
         
         if not customer:
@@ -109,7 +109,7 @@ def get_profile():
 def update_profile():
     """Update customer profile"""
     try:
-        customer_id = get_jwt_identity()
+        customer_id = int(get_jwt_identity())  # Convert string to int
         customer = Customer.query.get(customer_id)
         
         if not customer:
@@ -142,7 +142,7 @@ def update_profile():
 def change_password():
     """Change customer password"""
     try:
-        customer_id = get_jwt_identity()
+        customer_id = int(get_jwt_identity())  # Convert string to int
         customer = Customer.query.get(customer_id)
         
         if not customer:
