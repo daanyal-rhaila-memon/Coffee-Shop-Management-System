@@ -113,6 +113,7 @@ export const ordersAPI = {
     city?: string;
     postal_code?: string;
     notes?: string;
+    points_to_redeem?: number;
   }) => {
     console.log('create order', data);
     const response = await api.post('/orders', data);

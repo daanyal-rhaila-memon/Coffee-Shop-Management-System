@@ -31,7 +31,7 @@ export default function RewardsPage() {
     }
   };
 
-  const handleRedeem = async () => {
+  const handleRedeem = () => {
     if (!user) {
       alert('Please login to redeem points!');
       return;
@@ -44,41 +44,18 @@ export default function RewardsPage() {
       return;
     }
 
-    // Simple redemption - user enters points to redeem
-    const pointsToRedeem = prompt(
-      `You have ${currentPoints} points.\n\nEnter points to redeem (minimum 100):`
-    );
+    // Show instructions on how to use points
+    const instructions = `How to Redeem Your Reward Points:\n\n` +
+      `1️. Shop - Browse our menu and add items to your cart\n` +
+      `2️. Add to Cart - Select your favorite items\n` +
+      `3️. Proceed to Checkout - Click checkout when ready\n` +
+      `4️. Use Reward Points - Check the "Use Reward Points" option\n` +
+      `5️. Enter Points - Specify how many points to redeem (minimum 100)\n` +
+      `6️. Place Order - Your discount will be applied automatically!\n\n` +
+      `Remember: 1 point = 1 PKR discount\n` +
+      `You currently have ${currentPoints} points available.`;
 
-    if (!pointsToRedeem) return;
-
-    const pointsNum = parseInt(pointsToRedeem);
-
-    if (isNaN(pointsNum) || pointsNum < 100) {
-      alert('❌ Please enter at least 100 points');
-      return;
-    }
-
-    if (pointsNum > currentPoints) {
-      alert(`❌ Insufficient points. You have ${currentPoints} points.`);
-      return;
-    }
-
-    const confirmRedemption = confirm(
-      `Redeem ${pointsNum} points for PKR ${pointsNum} discount?\n\n(1 point = 1 PKR discount)`
-    );
-
-    if (confirmRedemption) {
-      try {
-        const response = await rewardsAPI.redeem(pointsNum);
-        setPoints(currentPoints - pointsNum);
-        alert(
-          `✅ Successfully redeemed ${pointsNum} points!\nDiscount: PKR ${response.discount_amount}\nRemaining points: ${response.remaining_points}`
-        );
-        loadRewards();
-      } catch (error: any) {
-        alert(error.response?.data?.error || 'Failed to redeem reward');
-      }
-    }
+    alert(instructions);
   };
 
   const currentPoints = points || user?.reward_points || 0;
@@ -146,9 +123,18 @@ export default function RewardsPage() {
               </div>
             </div>
 
-            <button className="btn btn-primary mt-4" onClick={handleRedeem}>
-              Redeem Now
+            <button 
+              className="btn btn-primary mt-4" 
+              onClick={handleRedeem}
+              disabled={currentPoints < 100}
+            >
+              {currentPoints < 100 ? 'Need 100 Points to Redeem' : 'Redeem Now'}
             </button>
+            {currentPoints < 100 && (
+              <p className="text-muted mt-2 small">
+                You need at least 100 points to redeem rewards. Keep shopping to earn more!
+              </p>
+            )}
 
             <div className="mt-5 text-start">
               <h5 style={{ color: '#4b2c20' }}>Recent Activity</h5>

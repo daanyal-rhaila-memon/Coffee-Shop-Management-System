@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { ordersAPI } from '@/lib/api';
+import { ordersAPI, rewardsAPI } from '@/lib/api';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -12,6 +12,9 @@ export default function CheckoutPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availablePoints, setAvailablePoints] = useState(0);
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
+  const [usePoints, setUsePoints] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -56,7 +59,22 @@ export default function CheckoutPage() {
         paymentMethod: 'cod',
       });
     }
+
+    // Load available reward points
+    loadRewardPoints();
   }, [user, items, router]);
+
+  const loadRewardPoints = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await rewardsAPI.get();
+      setAvailablePoints(response.reward_points || user.reward_points || 0);
+    } catch (error) {
+      console.error('Error loading reward points:', error);
+      setAvailablePoints(user.reward_points || 0);
+    }
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -116,6 +134,7 @@ export default function CheckoutPage() {
         items: orderItems,
         payment_method: paymentMethodMap[formData.paymentMethod] || 'Cash',
         delivery_fee: 150,
+        ...(usePoints && pointsToRedeem > 0 && { points_to_redeem: pointsToRedeem }),
       };
 
       console.log('Submitting order with data:', JSON.stringify(orderData, null, 2));
@@ -132,9 +151,20 @@ export default function CheckoutPage() {
       // Show success message
       const orderId = response.order?.order_id || response.order_id || 'N/A';
       const pointsEarned = response.points_earned || 0;
-      alert(
-        `Order placed successfully!\nOrder ID: ${orderId}\nPoints Earned: ${pointsEarned}\n\nThank you for your order!`
-      );
+      const pointsRedeemed = response.points_redeemed || 0;
+      const discountAmount = response.discount_amount || 0;
+      
+      let message = `Order placed successfully!\nOrder ID: ${orderId}\n`;
+      if (pointsRedeemed > 0) {
+        message += `Points Redeemed: ${pointsRedeemed} (Discount: ${discountAmount} PKR)\n`;
+      }
+      message += `Points Earned: ${pointsEarned}\n\nThank you for your order!`;
+      alert(message);
+      
+      // Reload points after order
+      if (pointsRedeemed > 0) {
+        loadRewardPoints();
+      }
 
       // Redirect to home
       router.push('/');
@@ -168,7 +198,17 @@ export default function CheckoutPage() {
 
   const subtotal = getTotalPrice();
   const deliveryFee = 150;
-  const total = subtotal + deliveryFee;
+  const discount = usePoints && pointsToRedeem > 0 ? pointsToRedeem : 0;
+  const total = Math.max(0, subtotal + deliveryFee - discount);
+
+  const handlePointsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value) || 0;
+    const maxPoints = Math.min(availablePoints, Math.floor(subtotal + deliveryFee));
+    // Ensure minimum 100 points if redeeming
+    const minPoints = 100;
+    const finalValue = Math.min(Math.max(minPoints, value), maxPoints);
+    setPointsToRedeem(finalValue);
+  };
 
   return (
     <>
@@ -366,6 +406,74 @@ export default function CheckoutPage() {
                 <span>Delivery Fee</span>
                 <span>150 PKR</span>
               </div>
+              
+              {availablePoints > 0 && (
+                <>
+                  <hr />
+                  <div className="mb-3">
+                    <div className="form-check mb-2">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="usePoints"
+                        checked={usePoints}
+                        disabled={availablePoints < 100}
+                        onChange={(e) => {
+                          setUsePoints(e.target.checked);
+                          if (!e.target.checked) {
+                            setPointsToRedeem(0);
+                          } else {
+                            const maxRedeemable = Math.min(availablePoints, Math.floor(subtotal + deliveryFee));
+                            // Set minimum 100 points when enabling
+                            const minPoints = 100;
+                            setPointsToRedeem(Math.min(Math.max(minPoints, pointsToRedeem || minPoints), maxRedeemable));
+                          }
+                        }}
+                      />
+                      <label className="form-check-label" htmlFor="usePoints">
+                        <strong>Use Reward Points</strong>
+                        <br />
+                        <small className="text-muted">
+                          Available: {availablePoints} points (1 point = 1 PKR)
+                        </small>
+                      </label>
+                    </div>
+                    {availablePoints < 100 && (
+                      <div className="alert alert-info mt-2 mb-0 py-2" style={{ fontSize: '0.875rem' }}>
+                        <small>
+                          <strong>Note:</strong> You need at least 100 points to redeem rewards. 
+                          You currently have {availablePoints} points. Keep shopping to earn more!
+                        </small>
+                      </div>
+                    )}
+                    {usePoints && availablePoints >= 100 && (
+                      <div className="mt-2">
+                        <label className="form-label small">Points to redeem (minimum 100):</label>
+                        <input
+                          type="number"
+                          className="form-control form-control-sm"
+                          min="100"
+                          max={Math.min(availablePoints, Math.floor(subtotal + deliveryFee))}
+                          value={pointsToRedeem}
+                          onChange={handlePointsChange}
+                          placeholder="Enter points (min 100)"
+                        />
+                        <small className="text-muted">
+                          Max: {Math.min(availablePoints, Math.floor(subtotal + deliveryFee))} points
+                        </small>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+              
+              {discount > 0 && (
+                <div className="d-flex justify-content-between mb-2 text-success">
+                  <span>Discount (Points Redeemed)</span>
+                  <span>-{discount} PKR</span>
+                </div>
+              )}
+              
               <hr />
               <div className="d-flex justify-content-between mb-4">
                 <strong>Total</strong>

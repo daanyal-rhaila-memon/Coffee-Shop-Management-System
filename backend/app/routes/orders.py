@@ -67,6 +67,48 @@ def create_order():
             delivery_fee = Decimal(str(data.get('delivery_fee', 0)))
             total_amount += delivery_fee
             
+            # Get customer (needed for points redemption and/or earning)
+            customer = Customer.query.get(customer_id)
+            if not customer:
+                return jsonify({'error': 'Customer not found'}), 404
+            
+            # Handle points redemption and discount
+            points_to_redeem = int(data.get('points_to_redeem', 0))
+            discount_amount = Decimal('0.00')
+            points_redeemed = 0
+            
+            if points_to_redeem > 0:
+                # Validate minimum points requirement
+                if points_to_redeem < 100:
+                    return jsonify({
+                        'error': 'Minimum 100 points required to redeem rewards'
+                    }), 400
+                
+                # Check if customer has enough points
+                if customer.reward_points < points_to_redeem:
+                    return jsonify({
+                        'error': f'Insufficient points. Available: {customer.reward_points}'
+                    }), 400
+                
+                # Calculate discount (1 point = 1 PKR)
+                discount_amount = Decimal(str(points_to_redeem))
+                
+                # Apply discount to total (ensure total doesn't go negative)
+                total_amount = max(Decimal('0.00'), total_amount - discount_amount)
+                
+                # Deduct points
+                customer.reward_points -= points_to_redeem
+                points_redeemed = points_to_redeem
+                
+                # Record reward transaction for redemption
+                redemption_transaction = RewardTransaction(
+                    customer_id=customer_id,
+                    points_earned=0,
+                    points_redeemed=points_to_redeem,
+                    description=f'Redeemed {points_to_redeem} points for discount on Order'
+                )
+                db.session.add(redemption_transaction)
+            
             # Create order
             new_order = Orders(
                 customer_id=customer_id,
@@ -99,11 +141,12 @@ def create_order():
             db.session.add(payment)
             
             # Calculate and award reward points (1 point per 100 PKR)
-            points_earned = int(total_amount / 100)
+            # Use original total before discount for points calculation
+            original_total = total_amount + discount_amount
+            points_earned = int(original_total / 100)
             
             if points_earned > 0:
                 # Update customer reward points
-                customer = Customer.query.get(customer_id)
                 customer.reward_points += points_earned
                 
                 # Record reward transaction
@@ -121,7 +164,9 @@ def create_order():
             return jsonify({
                 'message': 'Order placed successfully',
                 'order': new_order.to_dict(),
-                'points_earned': points_earned
+                'points_earned': points_earned,
+                'points_redeemed': points_redeemed,
+                'discount_amount': float(discount_amount)
             }), 201
             
         except Exception as e:
