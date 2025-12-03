@@ -137,6 +137,11 @@ export const ordersAPI = {
 
 // Reviews API
 export const reviewsAPI = {
+  getAll: async () => {
+    const response = await api.get('/reviews');
+    return response.data;
+  },
+
   create: async (data: {
     product_id: number;
     rating: number;
