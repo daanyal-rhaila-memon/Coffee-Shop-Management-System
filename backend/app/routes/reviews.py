@@ -5,7 +5,7 @@ from app.models import db, Review, Product, Customer
 
 reviews_bp = Blueprint('reviews', __name__)
 
-@reviews_bp.route('/', methods=['POST'])
+@reviews_bp.route('/', methods=['POST'], strict_slashes=False)
 @jwt_required()
 def create_review():
     """Submit a product review"""

@@ -5,7 +5,12 @@ from sqlalchemy import or_
 
 products_bp = Blueprint('products', __name__)
 
-@products_bp.route('/', methods=['GET'])
+@products_bp.route('/', methods=['OPTIONS'], strict_slashes=False)
+def handle_options():
+    """Handle CORS preflight requests"""
+    return '', 200
+
+@products_bp.route('/', methods=['GET'], strict_slashes=False)
 def get_all_products():
     """Get all products with optional filtering"""
     try:
