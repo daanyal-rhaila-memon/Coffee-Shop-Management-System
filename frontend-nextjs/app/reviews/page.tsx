@@ -65,12 +65,9 @@ export default function ReviewsPage() {
   const loadReviews = async () => {
     try {
       setLoading(true);
-      if (!user) {
-        setReviews([]);
-        return;
-      }
-      const customerReviews = await reviewsAPI.getCustomerReviews();
-      setReviews(Array.isArray(customerReviews) ? customerReviews : []);
+      const response = await reviewsAPI.getAll();
+      const allReviews = response.reviews || [];
+      setReviews(Array.isArray(allReviews) ? allReviews : []);
     } catch (error: any) {
       console.error('Error loading reviews:', error);
       setReviews([]);
@@ -80,12 +77,10 @@ export default function ReviewsPage() {
   };
 
   useEffect(() => {
-    if (user) {
-      loadReviews();
-    }
+    loadReviews();
     loadCategories();
     loadProducts(null); // Load all products initially
-  }, [user]);
+  }, []);
 
   // Update form products when form category changes
   useEffect(() => {
@@ -128,8 +123,8 @@ export default function ReviewsPage() {
   return (
     <>
       <header>
-        <h1>My Reviews</h1>
-        <p>View and manage your product reviews</p>
+        <h1>Reviews</h1>
+        <p>View all product reviews</p>
       </header>
 
       <section className="content">

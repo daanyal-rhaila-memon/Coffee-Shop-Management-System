@@ -5,6 +5,21 @@ from app.models import db, Review, Product, Customer
 
 reviews_bp = Blueprint('reviews', __name__)
 
+@reviews_bp.route('/', methods=['GET'], strict_slashes=False)
+def get_all_reviews():
+    """Get all reviews"""
+    try:
+        reviews = Review.query.order_by(Review.review_date.desc()).all()
+        
+        return jsonify({
+            'reviews': [review.to_dict() for review in reviews],
+            'count': len(reviews)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @reviews_bp.route('/', methods=['POST'], strict_slashes=False)
 @jwt_required()
 def create_review():

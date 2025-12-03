@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -27,6 +27,18 @@ export default function CheckoutPage() {
     orderNotes: '',
     paymentMethod: 'cod',
   });
+
+  const loadRewardPoints = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const response = await rewardsAPI.get();
+      setAvailablePoints(response.reward_points || user.reward_points || 0);
+    } catch (error) {
+      console.error('Error loading reward points:', error);
+      setAvailablePoints(user.reward_points || 0);
+    }
+  }, [user]);
 
   useEffect(() => {
     // Check if user is logged in
@@ -62,19 +74,7 @@ export default function CheckoutPage() {
 
     // Load available reward points
     loadRewardPoints();
-  }, [user, items, router]);
-
-  const loadRewardPoints = async () => {
-    if (!user) return;
-    
-    try {
-      const response = await rewardsAPI.get();
-      setAvailablePoints(response.reward_points || user.reward_points || 0);
-    } catch (error) {
-      console.error('Error loading reward points:', error);
-      setAvailablePoints(user.reward_points || 0);
-    }
-  };
+  }, [user, items, router, loadRewardPoints]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -200,6 +200,25 @@ export default function CheckoutPage() {
   const deliveryFee = 150;
   const discount = usePoints && pointsToRedeem > 0 ? pointsToRedeem : 0;
   const total = Math.max(0, subtotal + deliveryFee - discount);
+
+  // Adjust pointsToRedeem if subtotal changes and it exceeds the new maximum
+  useEffect(() => {
+    if (usePoints && pointsToRedeem > 0) {
+      const maxRedeemable = Math.min(availablePoints, Math.floor(subtotal + deliveryFee));
+      const minPoints = 100;
+      if (maxRedeemable < minPoints) {
+        // If max is less than minimum, disable points redemption
+        setUsePoints(false);
+        setPointsToRedeem(0);
+      } else if (pointsToRedeem > maxRedeemable) {
+        // Adjust to max if current value exceeds new maximum
+        setPointsToRedeem(maxRedeemable);
+      } else if (pointsToRedeem < minPoints) {
+        // Ensure minimum if somehow it's below minimum
+        setPointsToRedeem(minPoints);
+      }
+    }
+  }, [subtotal, deliveryFee, availablePoints, usePoints, pointsToRedeem]);
 
   const handlePointsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value) || 0;
@@ -426,7 +445,9 @@ export default function CheckoutPage() {
                             const maxRedeemable = Math.min(availablePoints, Math.floor(subtotal + deliveryFee));
                             // Set minimum 100 points when enabling
                             const minPoints = 100;
-                            setPointsToRedeem(Math.min(Math.max(minPoints, pointsToRedeem || minPoints), maxRedeemable));
+                            // If pointsToRedeem is 0 or less, set to minimum, otherwise keep current value (clamped to max)
+                            const initialValue = pointsToRedeem > 0 ? pointsToRedeem : minPoints;
+                            setPointsToRedeem(Math.min(Math.max(minPoints, initialValue), maxRedeemable));
                           }
                         }}
                       />
